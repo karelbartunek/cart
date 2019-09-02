@@ -1,12 +1,12 @@
 {
-  "name": "mike182uk/cart",
+  "name": "karelbartunek/cart",
   "description" : "A flexible and modern shopping cart package",
   "type": "library",
   "license": "MIT",
   "authors": [
     {
-      "name": "Michael David Barrett",
-      "email": "mike182uk@gmail.com"
+      "name": "Karel Bartunek",
+      "email": "post@karel-bartunek.cz"
     }
   ],
   "require" : {
