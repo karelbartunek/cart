@@ -4,9 +4,21 @@ namespace Cart;
 
 /**
  * @property string $id
+ * @property int    $companyDesignId
+ * @property int    $pitchPrintProjectId
+ * @property string $name
+ * @property string $sku
  * @property int    $quantity
  * @property float  $price
+ * @property float  $colorPrice
+ * @property float  $pagePrice
  * @property float  $tax
+ * @property int    $colorId
+ * @property int    $numEditPage
+ * @property array  $designAttributies
+ * @property array  $variantEntities
+ * @property string $variant
+ * @property string $thumbnail
  */
 class CartItem implements \ArrayAccess, Arrayable
 {
@@ -25,9 +37,21 @@ class CartItem implements \ArrayAccess, Arrayable
     public function __construct(array $data = [])
     {
         $defaults = [
+            'companyDesignId' => null,
+            'pitchPrintProjectId' => null,
+            'name' => '',
+            'sku' => '',
             'quantity' => 1,
             'price' => 0.00,
+            'colorPrice' => 0.00,
+            'pagePrice' => 0.00,
             'tax' => 0.00,
+            'colorId' => null,
+            'numEditPage' => 0,
+            'designAttributies' => array(),
+            'variantEntities' => array(),
+            'variant' => '',
+            'thumbnail' => ''
         ];
 
         $data = array_merge($defaults, $data);
@@ -45,7 +69,7 @@ class CartItem implements \ArrayAccess, Arrayable
     public function getId()
     {
         // keys to ignore in the hashing process
-        $ignoreKeys = ['quantity'];
+        $ignoreKeys = ['quantity', 'variant'];
 
         // data to use for the hashing process
         $hashData = $this->data;
@@ -88,8 +112,13 @@ class CartItem implements \ArrayAccess, Arrayable
         switch ($key) {
             case 'quantity':
                 $this->setCheckTypeInteger($value, $key);
-            break;
+                break;
+            case 'variant':
+                $this->setCheckTypeString($value, $key);
+                break;
             case 'price':
+            case 'colorPrice':
+            case 'pagePrice':
             case 'tax':
                 $this->setCheckIsNumeric($value, $key);
 
@@ -117,6 +146,21 @@ class CartItem implements \ArrayAccess, Arrayable
     }
 
     /**
+     * Check the value being set is an string.
+     *
+     * @param mixed  $value
+     * @param string $name
+     *
+     * @throws \InvalidArgumentException
+     */
+    private function setCheckTypeString($value, $name)
+    {
+        if (!is_string($value)) {
+            throw new \InvalidArgumentException(sprintf('%s must be an string.', $name));
+        }
+    }
+
+    /**
      * Check the value being set is an integer.
      *
      * @param mixed  $value
@@ -138,7 +182,7 @@ class CartItem implements \ArrayAccess, Arrayable
      */
     public function getTotalPrice()
     {
-        return (float) ($this->price + $this->tax) * $this->quantity;
+        return (float) ($this->getSinglePrice()) * $this->quantity;
     }
 
     /**
@@ -148,7 +192,7 @@ class CartItem implements \ArrayAccess, Arrayable
      */
     public function getTotalPriceExcludingTax()
     {
-        return (float) $this->price * $this->quantity;
+        return (float) $this->getSinglePriceExcludingTax() * $this->quantity;
     }
 
     /**
@@ -158,7 +202,7 @@ class CartItem implements \ArrayAccess, Arrayable
      */
     public function getSinglePrice()
     {
-        return (float) $this->price + $this->tax;
+        return (float) $this->price + $this->colorPrice + $this->getTotalPagePrice();
     }
 
     /**
@@ -168,7 +212,8 @@ class CartItem implements \ArrayAccess, Arrayable
      */
     public function getSinglePriceExcludingTax()
     {
-        return (float) $this->price;
+        $singlePriceExcludingTax = $this->getSinglePrice() / (1 + ($this->tax / 100));
+        return (float) round($singlePriceExcludingTax,0);
     }
 
     /**
@@ -178,7 +223,7 @@ class CartItem implements \ArrayAccess, Arrayable
      */
     public function getTotalTax()
     {
-        return (float) $this->tax * $this->quantity;
+        return (float) $this->getSingleTax() * $this->quantity;
     }
 
     /**
@@ -188,7 +233,17 @@ class CartItem implements \ArrayAccess, Arrayable
      */
     public function getSingleTax()
     {
-        return (float) $this->tax;
+        return (float) $this->getSinglePrice() - $this->getSinglePriceExcludingTax();
+    }
+
+    /**
+     * Get the total value of number page edit.
+     *
+     * @return float
+     */
+    public function getTotalPagePrice()
+    {
+        return (float) $this->pagePrice * $this->numEditPage;
     }
 
     /**
